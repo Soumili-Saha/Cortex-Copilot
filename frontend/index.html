@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cortex Copilot</title>
+<style>
+  :root{--green:#0f6b52;--green-dark:#0b5943;--green-light:#e6f2ee;
+    --user:#e8f0fe;--card:#fff;--border:#e2e2e2;--text:#1b1f24;--muted:#7a8288;--bg:#f4f3ee;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column}
+  header{background:var(--green);color:#fff;padding:14px 22px;display:flex;
+    align-items:center;justify-content:space-between;flex-shrink:0}
+  header h1{font-size:20px;margin:0;font-weight:700}
+  header select{padding:7px 12px;border-radius:8px;border:none;font-size:14px;background:#fff;color:var(--text);cursor:pointer}
+  #chat{flex:1;overflow-y:auto;padding:26px 18px;display:flex;flex-direction:column;
+    gap:14px;max-width:900px;width:100%;margin:0 auto}
+  .row{display:flex}.row.user{justify-content:flex-end}.row.bot{justify-content:flex-start}
+  .bubble{max-width:78%;padding:14px 18px;border-radius:14px;line-height:1.5;
+    font-size:15px;white-space:pre-wrap;word-wrap:break-word}
+  .user .bubble{background:var(--user)}
+  .bot .bubble{background:var(--card);border:1px solid var(--border)}
+  .src{font-size:12px;color:var(--muted);margin-top:8px}
+  .bubble h3{font-size:15px;margin:6px 0 2px;font-weight:700}
+  .card{background:#efefe9;border:1px solid var(--border);border-radius:12px;padding:20px;max-width:78%}
+  .card h3{margin:0 0 6px;font-size:15px}.card .grp{margin:14px 0}
+  .card label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+  .card input,.card select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff}
+  .avail{font-size:13px;color:var(--muted);margin-top:6px}
+  .btns{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+  button.g{background:var(--green);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer}
+  button.g:hover{background:var(--green-dark)}
+  button.ghost{background:#fff;color:var(--text);border:1px solid var(--border);padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer}
+  .varlist{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+  .varlist label{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--text)}
+  .dl{display:inline-block;margin-top:10px;background:var(--green);color:#fff;text-decoration:none;padding:8px 14px;border-radius:8px;font-size:14px}
+  table{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px;display:block;overflow-x:auto;max-height:320px}
+  th,td{border:1px solid var(--border);padding:5px 8px;white-space:nowrap}
+  th{background:var(--green-light);position:sticky;top:0}
+  footer{flex-shrink:0;padding:14px 18px;background:var(--bg);border-top:1px solid var(--border)}
+  .inputbar{max-width:900px;margin:0 auto;display:flex;gap:10px}
+  #msg{flex:1;padding:13px 16px;border:1px solid #b9c0bd;border-radius:10px;font-size:15px}
+  .toolbtns{max-width:900px;margin:0 auto 8px;display:flex;gap:8px}
+  .toolbtns button{background:var(--green-light);border:1px solid #bcd9cf;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;color:var(--green-dark);font-weight:600}
+  .toolbtns button:hover{background:#d4e9e1;border-color:var(--green)}
+  .cursor::after{content:"▋";color:var(--muted);animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .prog{color:var(--muted);font-style:italic}
+  .rangetag{display:inline-block;font-size:12px;color:var(--green-dark);background:var(--green-light);
+    padding:3px 8px;border-radius:6px;margin-bottom:8px}
+  .bubble ul{margin:6px 0 6px 2px;padding-left:20px}
+  .bubble li{margin:5px 0;line-height:1.5}
+  .bubble .ln{margin:4px 0}
+  .bubble .sp{height:8px}
+  .bubble code{background:#eef2f0;padding:1px 6px;border-radius:4px;
+    font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  .bubble .formula{font-family:ui-monospace,Consolas,monospace;background:#eef2f0;
+    padding:7px 12px;border-radius:6px;margin:8px 0;display:inline-block;font-size:14px}
+  .sp-overlay{position:fixed;inset:0;background:rgba(15,20,18,.28);display:none;z-index:40}
+  .sp-overlay.show{display:block}
+  .sidepanel{position:fixed;top:0;right:0;width:80vw;min-width:340px;max-width:96vw;height:100vh;
+    background:var(--bg);box-shadow:-6px 0 22px rgba(0,0,0,.18);z-index:50;
+    display:flex;flex-direction:column;
+    transform:translateX(100%);transition:transform .25s ease}
+  .sidepanel.open{transform:translateX(0)}
+  .sidepanel.resizing{transition:none}
+  .sp-resizer{position:absolute;top:0;left:-5px;width:10px;height:100%;
+    cursor:col-resize;z-index:51;background:transparent}
+  .sp-resizer::after{content:"";position:absolute;top:0;left:4px;width:2px;height:100%;
+    background:var(--border)}
+  .sp-resizer:hover::after,.sp-resizer.active::after{background:var(--green);width:3px;left:3.5px}
+  .sp-header{background:var(--green);color:#fff;padding:16px 20px;display:flex;
+    align-items:center;justify-content:space-between;flex-shrink:0}
+  .sp-header h3{margin:0;font-size:16px;font-weight:700}
+  .sp-close{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;opacity:.9}
+  .sp-close:hover{opacity:1}
+  .sp-body{padding:18px 20px;overflow-y:auto;flex:1}
+  .sp-body .grp{margin-bottom:12px}
+  .sp-body label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+  .sp-body input{width:100%;padding:8px 10px;border:1px solid var(--border);
+    border-radius:8px;font-size:14px;background:#fff}
+  .az-chart{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:12px;margin-top:14px}
+  .az-chart img{width:100%;display:block;border-radius:6px}
+  .az-chart h4{margin:0 0 8px;font-size:13px;font-weight:700;color:var(--green-dark)}
+</style>
+</head>
+<body>
+  <header><h1>Cortex Copilot</h1><select id="tenant"></select></header>
+  <div id="chat"></div>
+  <footer>
+    <div class="toolbtns">
+      <button onclick="showAnomalyCard()">Anomaly Report</button>
+      <button onclick="showRetrieveCard()">Retrieve Data</button>
+      <button onclick="showAnalyzePanel()">Analyze</button>
+    </div>
+    <div class="inputbar">
+      <input id="msg" placeholder="Ask about your electricity data..."
+             onkeydown="if(event.key==='Enter')send()"/>
+      <button class="g" onclick="send()">Send</button>
+    </div>
+  </footer>
+  <div class="sp-overlay" id="analyzeOverlay" onclick="closeAnalyzePanel()"></div>
+  <div class="sidepanel" id="analyzePanel">
+    <div class="sp-resizer" id="sp_resizer" title="Drag to resize"></div>
+    <div class="sp-header"><h3>Analyze</h3>
+      <button class="sp-close" onclick="closeAnalyzePanel()">✕</button></div>
+    <div class="sp-body">
+      <div class="avail" id="az_avail"></div>
+      <div class="grp"><label>Start date &amp; time</label>
+        <input type="datetime-local" id="az_s"></div>
+      <div class="grp"><label>End date &amp; time</label>
+        <input type="datetime-local" id="az_e"></div>
+      <div class="btns">
+        <button class="ghost" id="az_reset" onclick="resetAnalyze()">Reset</button>
+        <button class="g" id="az_run" onclick="runAnalyze()">Analyze</button>
+      </div>
+      <div id="az_charts"></div>
+    </div>
+  </div>
+<script>
+const API="";const chat=document.getElementById("chat");const tenantSel=document.getElementById("tenant");
+let bounds={min:null,max:null};
+
+// bounds are fetched once (on load / tenant switch) and reused by every
+// button click -- Anomaly, Retrieve and Analyze all read from the same
+// cache instead of re-hitting the network on each open. `boundsPromise`
+// de-dupes concurrent callers (e.g. the initial preload racing a click)
+// so nobody ever reads a half-populated {min:null,max:null}. A background
+// poll keeps the cache fresh so a newly-dropped CSV's range shows up
+// without the user having to reload the page or reopen a panel.
+let boundsLoaded=false;
+let boundsPromise=null;
+let boundsPollTimer=null;
+
+async function fetchBoundsNow(){
+  try{bounds=await(await fetch(API+`/api/bounds?tenant=${encodeURIComponent(tenantSel.value)}`)).json();}
+  catch(e){bounds={min:null,max:null};}
+  boundsLoaded=true;boundsPromise=null;
+  return bounds;
+}
+
+async function ensureBounds(force){
+  if(force){boundsPromise=fetchBoundsNow();return boundsPromise;}
+  if(boundsLoaded) return bounds;
+  if(boundsPromise) return boundsPromise;
+  boundsPromise=fetchBoundsNow();
+  return boundsPromise;
+}
+function startBoundsPolling(){
+  if(boundsPollTimer) clearInterval(boundsPollTimer);
+  
+  boundsPollTimer=setInterval(()=>{ensureBounds(true);},60000);
+}
+
+// The variable list is the CSV's column schema for the tenant -- it doesn't
+// change between clicks, so it's fetched once (page load / tenant switch)
+// and reused, exactly like bounds. This is what Retrieve Data's checkbox
+// list reads from, instead of re-fetching /api/variables on every open.
+let variables=[];
+let variablesLoaded=false;
+let variablesPromise=null;
+async function fetchVariablesNow(){
+  try{variables=(await(await fetch(API+`/api/variables?tenant=${encodeURIComponent(tenantSel.value)}`)).json()).variables||[];}
+  catch(e){variables=[];}
+  variablesLoaded=true;variablesPromise=null;
+  return variables;
+}
+async function ensureVariables(force){
+  if(force){variablesPromise=fetchVariablesNow();return variablesPromise;}
+  if(variablesLoaded) return variables;
+  if(variablesPromise) return variablesPromise;
+  variablesPromise=fetchVariablesNow();
+  return variablesPromise;
+}
+
+async function init(){
+  const t=await(await fetch(API+"/api/tenants")).json();
+  tenantSel.innerHTML=t.tenants.map(x=>`<option>${x}</option>`).join("");
+  tenantSel.onchange=onTenantChange;
+  // Preload bounds AND variables immediately, before the user can plausibly
+  // click anything, so the very first Anomaly/Retrieve/Analyze open already
+  // has both the correct min/max and the full variable list ready.
+  await Promise.all([ensureBounds(true), ensureVariables(true)]);
+  startBoundsPolling();
+}
+async function onTenantChange(){
+  chat.innerHTML="";
+  // a different tenant has a different valid range AND a different variable
+  // list -- clear the analyze pickers + charts so the panel re-defaults to
+  // the new tenant's bounds, and invalidate both caches so the next open
+  // refetches for the newly selected tenant.
+  const s=document.getElementById("az_s"),e=document.getElementById("az_e");
+  if(s)s.value="";if(e)e.value="";
+  const box=document.getElementById("az_charts");if(box)box.innerHTML="";
+  boundsLoaded=false;variablesLoaded=false;
+  await Promise.all([ensureBounds(true), ensureVariables(true)]);
+}
+
+function addUser(t){const r=document.createElement("div");r.className="row user";
+  r.innerHTML=`<div class="bubble">${esc(t)}</div>`;chat.appendChild(r);scroll();}
+function addBotShell(){const r=document.createElement("div");r.className="row bot";
+  r.innerHTML=`<div class="bubble cursor"></div>`;chat.appendChild(r);scroll();return r.querySelector(".bubble");}
+function finishBot(b,src){b.classList.remove("cursor");
+  if(src){const s=document.createElement("div");s.className="src";s.textContent="source: "+src;b.appendChild(s);}}
+function addBot(t,src){const r=document.createElement("div");r.className="row bot";
+  const s=src?`<div class="src">source: ${esc(src)}</div>`:"";
+  r.innerHTML=`<div class="bubble">${md(t)}${s}</div>`;chat.appendChild(r);scroll();return r;}
+function scroll(){chat.scrollTop=chat.scrollHeight;}
+function esc(s){return(s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function md(s){
+  s=esc(s);
+  s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
+  const lines=s.split(/\r?\n/);
+  let out=[],inList=false;
+  const closeList=()=>{if(inList){out.push('</ul>');inList=false;}};
+  for(let raw of lines){
+    const t=raw.trim();
+    if(/^#{1,3}\s+/.test(t)){closeList();out.push('<h3>'+t.replace(/^#{1,3}\s+/,'')+'</h3>');continue;}
+    if(/^[-*]\s+/.test(t)){if(!inList){out.push('<ul>');inList=true;}out.push('<li>'+t.replace(/^[-*]\s+/,'')+'</li>');continue;}
+    closeList();
+    if(t===''){out.push('<div class="sp"></div>');continue;}
+    
+    if(/^[A-Za-z][\w ()\/*+.\-]*=[\w ()\/*+.\-]+$/.test(t)&&!/[.,;:]/.test(t)){
+      out.push('<div class="formula">'+t+'</div>');continue;
+    }
+    out.push('<div class="ln">'+t+'</div>');
+  }
+  closeList();
+  return out.join('');
+}
+
+async function send(){
+  const inp=document.getElementById("msg");const text=inp.value.trim();if(!text)return;
+  inp.value="";addUser(text);
+  const low=text.toLowerCase();
+  if(low==="anomaly report"){showAnomalyCard();return;}
+  if(low==="retrieve data"){showRetrieveCard();return;}
+
+  
+  const prog=addBotShell();
+  prog.classList.add("cursor");
+  const pmsgs=["Understanding your question…","Mapping variables to your query…","Selecting relevant readings…"];
+  let pi=0; prog.innerHTML=`<span class="prog">${pmsgs[0]}</span>`;
+  const ptimer=setInterval(()=>{pi=(pi+1)%pmsgs.length;
+    prog.innerHTML=`<span class="prog">${pmsgs[pi]}</span>`;},900);
+
+  let chk={needs_range:false};
+  try{chk=await(await fetch(API+"/api/chat/check",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({tenant:tenantSel.value,message:text})})).json();}catch(e){}
+
+  clearInterval(ptimer);
+
+  if(chk.needs_range){
+    prog.innerHTML=`<span class="prog">Preparing options…</span>`;
+    await showRangeCard(text, chk.window, chk.variables||[], chk.intent, chk.subtype);
+    prog.closest(".row").remove();   
+    return;
+  }
+  prog.closest(".row").remove();
+  streamAnswer(text, null, null, [], chk.intent, chk.subtype);
+}
+
+async function showRangeCard(question, win, matched, intent, subtype){
+  
+  let allVars=await ensureVariables();
+  if(!allVars.length) allVars = matched;
+  const r=document.createElement("div");r.className="row bot";
+  const lo=win&&win.min?win.min.slice(0,16):"";
+  const hi=win&&win.max?win.max.slice(0,16):"";
+  const checks=allVars.map(v=>{
+    const on = matched.includes(v) ? "checked" : "";
+    return `<label><input type="checkbox" value="${esc(v)}" ${on}>${esc(v)}</label>`;
+  }).join("");
+  r.innerHTML=`<div class="card">
+    <h3>Analyse over a time range</h3>
+    <div class="avail">Pick start &amp; end. For a single day, set both to that day.${win?` Available: ${fmt(win.min)} → ${fmt(win.max)}`:""}</div>
+    <div class="grp"><label>Start</label>
+      <input type="datetime-local" id="rg_s" value="${lo}" min="${lo}" max="${hi}"></div>
+    <div class="grp"><label>End</label>
+      <input type="datetime-local" id="rg_e" value="${hi}" min="${lo}" max="${hi}"></div>
+    <div class="grp"><label>Variables to analyse</label>
+      <div class="varlist">${checks}</div></div>
+    <div class="btns">
+      <button class="ghost" onclick="this.closest('.row').remove()">Cancel</button>
+      <button class="g" onclick="runRange(this,'${encodeURIComponent(question)}','${intent||""}','${subtype||""}')">Analyse</button>
+    </div></div>`;
+  chat.appendChild(r);scroll();
+}
+function runRange(btn,q,intent,subtype){
+  const c=btn.closest(".card");
+  const s=c.querySelector("#rg_s").value,e=c.querySelector("#rg_e").value;
+  const vars=[...c.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value);
+  if(!s||!e){alert("Pick start and end.");return;}
+  if(startAfterEnd(s,e)){alert("Start date and time can't be after end date and time.");return;}
+  
+  c.innerHTML = `<div class="avail">Analyzing range: ${fmt(s)} → ${fmt(e)}</div>`;
+  
+  streamAnswer(decodeURIComponent(q), s, e, vars, intent, subtype);
+}
+
+async function streamAnswer(text, start, end, variables, intent, subtype){
+  const bubble=addBotShell();
+  let acc="";
+  let rangeLabel = (start && end) ? `Range: ${fmt(start)} → ${fmt(end)}` : "";
+
+  // staged progress so the user never stares at a blank cursor
+  const stages = (start && end)
+    ? ["Fetching your data from the database…","Filtering to your time range…","Analyzing variables…","Generating insights…"]
+    : ["Searching the knowledge base…","Composing the answer…"];
+  let si=0, started=false;
+  bubble.classList.add("cursor");
+  bubble.innerHTML = `<span class="prog">${stages[0]}</span>`;
+  const timer=setInterval(()=>{ if(!started){ si=(si+1)%stages.length;
+    bubble.innerHTML=`<span class="prog">${stages[si]}</span>`; } }, 1100);
+
+  try{
+    const res=await fetch(API+"/api/chat/stream",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({tenant:tenantSel.value,message:text,start:start,end:end,variables:variables||[],intent:intent||null,subtype:subtype||null})});
+    const source=res.headers.get("X-Source")||"";
+    if(!res.ok){ clearInterval(timer); bubble.textContent="(request failed)"; finishBot(bubble,null); return; }
+    const reader=res.body.getReader();const dec=new TextDecoder();
+    const prefix = rangeLabel ? `<div class="rangetag">${esc(rangeLabel)}</div>` : "";
+    while(true){
+      const{done,value}=await reader.read(); if(done) break;
+      if(!started){ started=true; clearInterval(timer); }
+      acc+=dec.decode(value,{stream:true});
+      bubble.innerHTML=prefix+md(acc);
+      bubble.classList.add("cursor"); scroll();
+    }
+    clearInterval(timer);
+    finishBot(bubble,source);
+  }catch(e){ clearInterval(timer); bubble.textContent="(request failed) "+e.message; finishBot(bubble,null); }
+}
+
+function renderAnomalyCard(){
+  const r=document.createElement("div");r.className="row bot";
+  const lo=bounds.min?bounds.min.slice(0,16):"";const hi=bounds.max?bounds.max.slice(0,16):"";
+  const dm=dayMinMax();
+  r.innerHTML=`<div class="card"><h3>Generate Anomaly Report</h3>
+    ${bounds.min?`<div class="avail">Available: ${fmt(bounds.min)} → ${fmt(bounds.max)}</div>`:""}
+    <div class="grp"><label>Start date &amp; time</label>
+      <input type="datetime-local" id="an_s" value="${lo}" min="${dm.lo}" max="${dm.hi}"></div>
+    <div class="grp"><label>End date &amp; time</label>
+      <input type="datetime-local" id="an_e" value="${hi}" min="${dm.lo}" max="${dm.hi}"></div>
+    <div class="btns"><button class="ghost" onclick="this.closest('.row').remove()">Cancel</button>
+      <button class="g" onclick="genAnomaly(this)">Generate Report</button></div></div>`;
+  chat.appendChild(r);scroll();
+}
+async function showAnomalyCard(){
+  if(boundsLoaded){renderAnomalyCard();return;}
+  const loading=document.createElement("div");loading.className="row bot";
+  loading.innerHTML=`<div class="card"><h3>Generate Anomaly Report</h3><span class="prog">Loading available dates…</span></div>`;
+  chat.appendChild(loading);scroll();
+  await ensureBounds();
+  loading.remove();
+  renderAnomalyCard();
+}
+async function genAnomaly(btn){
+  const c=btn.closest(".card");const s=c.querySelector("#an_s").value,e=c.querySelector("#an_e").value;
+  if(!s||!e){alert("Pick start and end.");return;}
+  if(startAfterEnd(s,e)){alert("Start date and time can't be after end date and time.");return;}
+  btn.textContent="Generating…";btn.disabled=true;
+  try{const res=await fetch(API+"/api/anomaly-report",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({tenant:tenantSel.value,start:s,end:e})});
+    const data=await res.json();btn.closest(".row").remove();
+    if(!res.ok){addBot(data.detail||"Report failed.",null);return;}
+    const b=addBot(data.message,null);
+    b.querySelector(".bubble").innerHTML+=`<br><a class="dl" href="${data.download_url}" download>⬇ Download anomaly report</a>`;
+  }catch(err){btn.disabled=false;btn.textContent="Generate Report";addBot("(request failed) "+err.message,null);}
+}
+
+async function showRetrieveCard(){
+  if(!boundsLoaded || !variablesLoaded){
+    const loading=document.createElement("div");loading.className="row bot";
+    loading.innerHTML=`<div class="card"><h3>Retrieve Data</h3><span class="prog">Loading variables…</span></div>`;
+    chat.appendChild(loading);scroll();
+    await Promise.all([ensureVariables(), ensureBounds()]);
+    loading.remove();
+  }
+  const r=document.createElement("div");r.className="row bot";
+  const lo=bounds.min?bounds.min.slice(0,10):"";const hi=bounds.max?bounds.max.slice(0,10):"";
+  r.innerHTML=`<div class="card"><h3>Retrieve Data</h3>
+    ${bounds.min?`<div class="avail">Available: ${fmt(bounds.min)} → ${fmt(bounds.max)}</div>`:""}
+    <div class="grp"><label>Start date</label><input type="date" id="rt_s" value="${lo}" min="${lo}" max="${hi}"></div>
+    <div class="grp"><label>End date</label><input type="date" id="rt_e" value="${hi}" min="${lo}" max="${hi}"></div>
+    <div class="grp"><label>Variables (none = all)</label>
+      <div class="varlist">${variables.map(v=>`<label><input type="checkbox" value="${esc(v)}">${esc(v)}</label>`).join("")}</div></div>
+    <div class="btns"><button class="ghost" onclick="this.closest('.row').remove()">Cancel</button>
+      <button class="g" onclick="doRetrieve(this)">Retrieve</button></div></div>`;
+  chat.appendChild(r);scroll();
+}
+async function doRetrieve(btn){
+  const c=btn.closest(".card");const s=c.querySelector("#rt_s").value,e=c.querySelector("#rt_e").value;
+  const chosen=[...c.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value);
+  if(!s||!e){alert("Pick start and end date.");return;}
+  if(startAfterEnd(s,e)){alert("Start date and time can't be after end date and time.");return;}
+  const varLabel = chosen.length ? chosen.join(", ") : "all variables";
+
+
+  c.closest(".row").remove();
+  addUser(`Retrieving ${varLabel} from ${s} to ${e}`);
+  const bubble=addBotShell();
+  bubble.innerHTML=`<span class="prog">Fetching your data…</span>`;
+
+  try{const res=await fetch(API+"/api/retrieve",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({tenant:tenantSel.value,start:s,end:e,variables:chosen})});
+    const data=await res.json();
+    if(!res.ok){bubble.textContent=data.detail||"Retrieve failed.";finishBot(bubble,null);return;}
+    const head=`<tr>${data.columns.map(x=>`<th>${esc(x)}</th>`).join("")}</tr>`;
+    const body=data.rows.map(row=>`<tr>${row.map(v=>`<td>${esc(v)}</td>`).join("")}</tr>`).join("");
+    bubble.innerHTML=`Retrieved ${data.total_rows} row(s).<table>${head}${body}</table>`+
+      (data.total_rows>200?`<div class="src">Showing first 200 rows.</div>`:"")+
+      `<br><a class="dl" href="${data.download_url}" download>⬇ Download data report</a>`;
+    finishBot(bubble,null);
+  }catch(err){bubble.textContent="(request failed) "+err.message;finishBot(bubble,null);}
+}
+function fmt(iso){return iso?iso.replace("T"," ").slice(0,16):"";}
+
+function startAfterEnd(s,e){return new Date(s) > new Date(e);}
+
+function dayMinMax(){
+  if(!bounds.min || !bounds.max) return {lo:"",hi:""};
+  return {lo: bounds.min.slice(0,10)+"T00:00", hi: bounds.max.slice(0,10)+"T23:59"};
+}
+
+//Sidepanel drag-to-resize
+(function initPanelResize(){
+  const panel=document.getElementById("analyzePanel");
+  const handle=document.getElementById("sp_resizer");
+  let dragging=false,startX=0,startWidth=0;
+  const MIN_W=340;
+  function clamp(w){return Math.max(MIN_W,Math.min(w,window.innerWidth*0.96));}
+  handle.addEventListener("mousedown",e=>{
+    dragging=true;startX=e.clientX;startWidth=panel.getBoundingClientRect().width;
+    panel.classList.add("resizing");handle.classList.add("active");
+    document.body.style.userSelect="none";e.preventDefault();
+  });
+  window.addEventListener("mousemove",e=>{
+    if(!dragging)return;
+    const delta=startX-e.clientX;             
+    panel.style.width=clamp(startWidth+delta)+"px";
+  });
+  window.addEventListener("mouseup",()=>{
+    if(!dragging)return;
+    dragging=false;panel.classList.remove("resizing");handle.classList.remove("active");
+    document.body.style.userSelect="";
+  });
+})();
+
+let azController=null;   // in-flight analyze-charts request, so Reset can actually cancel it
+let azRunToken=0;        // bumped on every reset so a late response can't render after Reset
+
+async function showAnalyzePanel(){
+  document.getElementById("analyzeOverlay").classList.add("show");
+  document.getElementById("analyzePanel").classList.add("open");
+  const avail=document.getElementById("az_avail");
+  const box=document.getElementById("az_charts");
+  const s=document.getElementById("az_s"),e=document.getElementById("az_e");
+
+  if(!boundsLoaded){
+    avail.textContent="Loading available data range…";
+    await ensureBounds();
+  }
+  if(!bounds.min || !bounds.max){
+    avail.textContent="";
+    box.innerHTML=`<div class="avail">No time-series data available for this tenant.</div>`;
+    s.value="";e.value="";
+    s.removeAttribute("min");s.removeAttribute("max");
+    e.removeAttribute("min");e.removeAttribute("max");
+    return;
+  }
+  const lo=bounds.min.slice(0,16),hi=bounds.max.slice(0,16);
+  
+  const dm=dayMinMax();
+  s.min=dm.lo;s.max=dm.hi;e.min=dm.lo;e.max=dm.hi;
+  
+  if(!s.value) s.value=lo;
+  if(!e.value) e.value=hi;
+  avail.textContent=`Available: ${fmt(bounds.min)} → ${fmt(bounds.max)}`;
+  
+  if(!box.querySelector(".az-chart")){
+    box.innerHTML=`<div class="avail">Pick a start &amp; end, then click Analyze.</div>`;
+  }
+}
+function resetAnalyze(){
+  
+  azRunToken++;                              
+  if(azController){ azController.abort(); azController=null; }
+  const s=document.getElementById("az_s"),e=document.getElementById("az_e");
+  const box=document.getElementById("az_charts");
+  const runBtn=document.getElementById("az_run"),resetBtn=document.getElementById("az_reset");
+  if(runBtn){runBtn.disabled=false;runBtn.textContent="Analyze";}
+  if(resetBtn) resetBtn.disabled=false;
+  if(bounds.min && bounds.max){
+    const dm=dayMinMax();
+    s.min=dm.lo;s.max=dm.hi;
+    e.min=dm.lo;e.max=dm.hi;
+    s.value=bounds.min.slice(0,16);
+    e.value=bounds.max.slice(0,16);
+  }
+  box.innerHTML=`<div class="avail">Pick a start &amp; end, then click Analyze.</div>`;
+}
+function closeAnalyzePanel(){
+  document.getElementById("analyzeOverlay").classList.remove("show");
+  document.getElementById("analyzePanel").classList.remove("open");
+}
+async function runAnalyze(){
+  const s=document.getElementById("az_s").value,e=document.getElementById("az_e").value;
+  const box=document.getElementById("az_charts");
+  const runBtn=document.getElementById("az_run"),resetBtn=document.getElementById("az_reset");
+  if(!s||!e){alert("Pick start and end date & time.");return;}
+  if(startAfterEnd(s,e)){alert("Start date and time can't be after end date and time.");return;}
+
+  azRunToken++;
+  const myToken=azRunToken;
+  if(azController) azController.abort();
+  azController=new AbortController();
+
+  
+  if(runBtn){runBtn.disabled=true;runBtn.textContent="Analyzing…";}
+  if(resetBtn) resetBtn.disabled=true;
+  box.innerHTML=`<div class="avail prog">Building charts for this range…</div>`;
+  try{
+    const res=await fetch(API+"/api/analyze-charts",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({tenant:tenantSel.value,start:s,end:e}),
+      signal:azController.signal});
+    if(myToken!==azRunToken) return;   // superseded by a Reset -- drop this response
+    const data=await res.json();
+    if(myToken!==azRunToken) return;
+    if(!res.ok){box.innerHTML=`<div class="avail">${esc(data.detail||"No charts available for this range.")}</div>`;return;}
+    box.innerHTML = (data.charts&&data.charts.length)
+      ? data.charts.map(c=>`<div class="az-chart"><h4>${esc(c.title)}</h4><img src="${c.image}"></div>`).join("")
+      : `<div class="avail">No relevant columns found for these charts.</div>`;
+  }catch(err){
+    if(myToken!==azRunToken || err.name==="AbortError") return;   // cancelled by Reset
+    box.innerHTML=`<div class="avail">(request failed) ${esc(err.message)}</div>`;
+  }finally{
+    if(myToken===azRunToken){
+      if(runBtn){runBtn.disabled=false;runBtn.textContent="Analyze";}
+      if(resetBtn) resetBtn.disabled=false;
+    }
+  }
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+[TENANT A - DATASET OVERVIEW]
+This knowledge base describes the electrical power-quality and energy dataset for Tenant A. Every figure below belongs to Tenant A only. The dataset contains 5,923 readings logged at roughly 10-minute intervals (most common interval 00:10:02). Monitoring began on 2026-05-19 16:35:19 and ended on 2026-07-04 08:27:57, spanning about 45 days and 16 hours. After cleaning, no missing values remain. The three phases are labelled R (Red), Y (Yellow), and B (Blue).
+
+[TENANT A - ENERGY CONSUMPTION AND DEMAND]
+Over the ~45-day period, Tenant A consumed 2,438,003.61 kWh of total active energy and 2,611,868.35 kVAh of apparent energy. Reactive energy was 156,485.61 kVARh inductive and 24,972.28 kVARh capacitive. Peak demand reached 1,416,322.50 W (about 1.42 MW), recorded on 2026-06-25 at 17:40:29. Average total active power was 549,383.52 W (median 543,212.94 W), with 95% of readings below 1,136,544.80 W and a minimum of 0 W. The load factor was 38.79%, meaning average load sits well below peak - Tenant A has sharp, variable peaks rather than a flat load, which drives demand charges.
+
+[TENANT A - LOAD PROFILE AND TIME OF USE]
+Tenant A's demand peaks around 12:00 noon, averaging 809,972.91 W, and is lowest around 05:00, averaging 327,015.32 W. Weekday consumption averages 553,453.23 W versus 539,446.88 W on weekends, so weekend usage is about 2.5% lower than weekdays. The wide gap between base load and peak load is consistent with the low 38.79% load factor. This daytime-peaking, weekday-heavy pattern is typical of a commercial or industrial operation.
+
+[TENANT A - CURRENT AND PHASE BALANCE]
+Average total current was 785.63 A (median 762.54 A), with 95% of readings below 1,670.46 A and a maximum of 2,035.96 A. The three-phase current imbalance between R, Y, and B averaged 64.88 A and spiked as high as 1,886.34 A, showing significant load imbalance across phases at times. Elevated neutral current on the peak-demand day confirms this imbalance.
+
+[TENANT A - VOLTAGE QUALITY]
+Average line-to-line voltage (VLL) was 420.45 V (median 421.18 V), staying below 428.12 V for 95% of readings, with a maximum of 431.15 V. Using a nominal of 421.18 V, Tenant A had 10 voltage sag events (below 90% of nominal) and 0 swell events (above 110% of nominal). Voltage is generally stable; the occasional sags tend to coincide with high-demand periods.
+
+[TENANT A - POWER FACTOR]
+The true power factor magnitude is around 0.95 but was recorded with a negative sign (mean -0.15, median -0.95). This points to a wiring issue - a reverse-connected current transformer (CT) or reverse power flow - rather than genuinely poor efficiency. The recorded power factor fell below 0.85 for 58.0% of intervals (3,433 readings). If this is a real low-PF condition it would attract power-factor penalties on the bill, but the negative sign should be investigated first by checking CT polarity.
+
+[TENANT A - HARMONIC DISTORTION (THD)]
+Harmonic distortion is a major concern for Tenant A. Voltage THD exceeded the IEEE-519 5% limit on 27.17% of readings for R phase (max 35.24%), 30.05% for Y phase (max 25.74%), and 23.65% for B phase (max 25.13%). Current THD is far worse, exceeding the 8% limit on 75.08% of readings for R phase (max 370.74%), 83.05% for Y phase (max 400.55%), and 89.99% for B phase (max 425.57%). These very high current-harmonic levels indicate heavy non-linear loads such as variable-frequency drives or rectifiers.
+
+[TENANT A - TRANSFORMER STRESS (K-FACTOR)]
+K-Factor measures transformer overheating risk from harmonics; values above 4.0 indicate stress. For Tenant A, K_Factor_I_R averaged 2.59 (max 10.35) and exceeded 4.0 for 20.48% of the time; K_Factor_I_Y averaged 2.66 (max 10.43), above 4.0 for 18.72%; K_Factor_I_B averaged 2.96 (max 10.18), above 4.0 for 28.65%. The transformer serving Tenant A is periodically overstressed and may need de-rating or harmonic filtering.
+
+[TENANT A - GRID FREQUENCY]
+Grid frequency averaged 49.95 Hz (median 50.00 Hz), within the normal Indian 50 Hz band, staying below 50.09 Hz for 95% of readings and peaking at 50.31 Hz. Occasional 0.00 Hz readings correspond to metering dropouts, not real grid events.
+
+[TENANT A - ANOMALIES (ISOLATION FOREST)]
+An Isolation Forest with 2% contamination flagged 119 abnormal intervals for Tenant A out of 5,923 readings. During anomalies, average total power rose to 863,513.87 W versus 542,942.87 W normally, and total current rose to 1,273.41 A versus 775.63 A. Voltage THD roughly doubled during anomalies (R 7.14% vs 3.14%, Y 7.13% vs 3.23%, B 6.88% vs 3.16%) and current THD climbed (I_R 54.57% vs 17.54%, I_B 51.90% vs 20.52%). Anomalies therefore correspond to high-demand, high-distortion periods: the system is most stressed when load is heaviest.
+
+[TENANT A - DATA QUALITY CAVEATS]
+Three known data issues affect Tenant A and should be mentioned when relevant. First, the Num_Interruptions register reports an impossible cumulative total (about 1.886 billion), a hardware counter overflow, so the true interruption count is unknown and this number must not be quoted literally. Second, the true power factor carries a persistent negative sign (median -0.95), most likely a reverse-connected CT or reverse power flow, so the PF sign should be verified before drawing efficiency conclusions. Third, some THD readings are negative (physically impossible) and were treated as sensor errors. Energy totals were computed from positive differences of the cumulative registers to ignore meter resets and rollovers.
+
+[TENANT A - BILLING SUMMARY]
+If asked why a bill is high, Tenant A's main cost drivers are: (1) a high peak demand of about 1.42 MW combined with a low 38.79% load factor, which raises demand charges; (2) a possible low power factor below 0.85 for 58% of intervals, which could trigger a power-factor penalty pending a CT-polarity check; and (3) severe current harmonics that increase losses and transformer heating. Total active energy over the monitoring period was 2,438,003.61 kWh.

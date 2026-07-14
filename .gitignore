@@ -1,0 +1,26 @@
+
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Regenerated at runtime -- no need to commit
+vector_store/
+output_reports/tenant_a/*
+output_reports/tenant_b/*
+!output_reports/tenant_a/.gitkeep
+!output_reports/tenant_b/.gitkeep
+
+# Editor/OS clutter
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
